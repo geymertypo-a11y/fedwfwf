@@ -13,7 +13,6 @@ jobs:
         with:
           distribution: temurin
           java-version: 17
-      - uses: android-actions/setup-android@v3
       - run: chmod +x gradlew && ./gradlew assembleRelease
       - run: cp app/build/outputs/apk/release/*.apk DotLauncher.apk
       - uses: softprops/action-gh-release@v2
