@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<title>Dot Launcher</title>
+<link href="https://fonts.googleapis.com/css2?family=Doto:wght@900&family=Space+Grotesk:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+:root{--txt:#fff;--acc:#d71921;--dbg:rgba(0,0,0,.7);--dbgs:rgba(0,0,0,.8);--cl:rgba(255,255,255,.18);--lhc:#d71921;--lhs:40px;--dsz:36px;--dfs:19px;--isz:56px;--cols:4;--csz:96px}
+*{box-sizing:border-box;min-width:0;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;height:100%;background:transparent;overflow:hidden}
+body{color:var(--txt);font:16px/1.4 "Space Grotesk",system-ui,sans-serif;user-select:none;-webkit-user-select:none;touch-action:pan-y}
+[hidden]{display:none!important}
+.dot{font-family:Doto,"Space Grotesk",monospace;font-weight:900}
+#pager{position:fixed;inset:0;display:flex;width:200%;transform:translateX(-50%);transition:transform .38s cubic-bezier(.2,.8,.2,1)}
+#pager.open{transform:translateX(0)}#pager.drag{transition:none}
+#pager.rev{flex-direction:row-reverse;transform:none}#pager.rev.open{transform:translateX(-50%)}
+.page{position:relative;width:50%;height:100%;display:flex;flex-direction:column}
+/* главный */
+.home{padding:56px 22px 40px;text-shadow:0 1px 8px rgba(0,0,0,.35)}
+.clock{font-size:var(--csz);line-height:.9;letter-spacing:-2px}.clock b{color:var(--acc);font-weight:900}
+.info{margin-top:8px;font-size:17px;opacity:.9}
+.c{text-align:center}
+.fav{margin-top:auto;display:grid;grid-template-columns:repeat(var(--cols),1fr);gap:22px 6px;justify-items:center}
+.ic{display:flex;flex-direction:column;align-items:center;gap:6px;width:100%;font-size:12px;text-align:center}
+.ic span{max-width:100%;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
+.im{flex:none;width:var(--isz);aspect-ratio:1;display:grid;place-items:center;overflow:hidden;border-radius:var(--shape)}
+.im img{width:100%;height:100%;display:block}
+.im.mono img{filter:grayscale(1) contrast(1.15)}
+.im.ph{background:var(--cl);font:700 calc(var(--isz)*.42) "Space Grotesk",sans-serif}
+.hint{text-align:center;font-size:12px;opacity:.6;margin-top:22px}
+.empty-fav{grid-column:1/-1;font-size:14px;opacity:.75;text-align:center}
+/* меню */
+.drawer{background:var(--dbg);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px)}
+.dtop{padding:52px 22px 8px}
+.dtop h3{margin:0 0 12px;font-size:26px;white-space:nowrap}
+.srch{width:100%;height:46px;border-radius:99px;border:0;padding:0 18px;font:inherit;font-size:16px;background:var(--cl);color:inherit;outline:none}
+.srch::placeholder{color:inherit;opacity:.55}
+.alist{-webkit-mask-image:linear-gradient(transparent,#000 28px);mask-image:linear-gradient(transparent,#000 28px);flex:1;overflow-y:auto;overscroll-behavior:contain;padding:0 52px var(--apb,40px) 22px;scrollbar-width:none;position:relative;touch-action:pan-y}
+.alist::-webkit-scrollbar{display:none}
+.lh{padding:14px 0 4px;font-size:var(--lhs);line-height:1;color:var(--lhc)}
+.ai{display:flex;align-items:center;gap:14px;min-height:calc(var(--dsz) + 12px);font-size:var(--dfs);transform-origin:left center;will-change:transform}
+.ai .im{width:var(--dsz)}
+.ai.pr{opacity:.5}
+.none{padding:30px 0;opacity:.6}
+.rail{position:absolute;right:4px;top:150px;bottom:40px;width:36px;display:flex;flex-direction:column;justify-content:space-around;align-items:center;touch-action:none;z-index:3}
+.rail b{font-size:11px;padding:1px 6px;border-radius:6px}.rail b.on{color:var(--acc)}
+.bubble{position:fixed;right:56px;width:68px;height:68px;border-radius:50%;display:grid;place-items:center;background:var(--acc);color:#fff;font-size:38px;opacity:0;transition:opacity .2s;pointer-events:none;transform:translateY(-50%);z-index:5}
+.bubble.on{opacity:1}
+/* листы */
+.shade{position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:10;display:flex;align-items:flex-end}
+.sheet{width:100%;max-height:86%;overflow-y:auto;background:#121212;color:#eee;border-radius:26px 26px 0 0;padding:22px 20px 40px;touch-action:pan-y;text-shadow:none}
+.sheet h2{margin:0 0 4px;font-size:22px}.sheet h4{margin:22px 0 8px;font-size:15px;color:#9a9a9a;font-weight:500}
+.row{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-top:8px}
+.chip{min-height:42px;padding:0 15px;border-radius:99px;border:1px solid #333;background:transparent;color:#eee;font:500 15px "Space Grotesk",sans-serif}
+.chip.on{background:#eee;color:#111;border-color:#eee}
+.chip.red{background:#d71921;border-color:#d71921;color:#fff}
+.rl{display:flex;align-items:center;gap:12px;width:100%;font-size:15px;margin-top:6px}.rl span{width:8.5em;color:#bbb}.rl input{flex:1;accent-color:#d71921;height:40px}
+.tg{display:flex;align-items:center;gap:10px;min-height:44px;font-size:15px;width:100%}.tg input{width:22px;height:22px;accent-color:#d71921}
+.clr{display:flex;align-items:center;gap:10px;min-height:44px;font-size:15px;margin-right:16px}
+.clr input{width:34px;height:34px;border:0;border-radius:50%;padding:0;background:none}
+.menu button{display:block;width:100%;text-align:left;min-height:52px;border:0;border-bottom:1px solid #222;background:none;color:#eee;font:500 17px "Space Grotesk",sans-serif}
+</style>
+</head>
+<body>
+<div id="pager">
+  <div class="page drawer" id="drawer">
+    <div class="dtop"><h3 class="dot" id="dcount">Приложения</h3><input class="srch" id="srch" type="search" placeholder="Поиск приложений" autocomplete="off"></div>
+    <div class="alist" id="alist"></div>
+    <div class="rail" id="rail"></div>
+  </div>
+  <div class="page home" id="home">
+    <div class="clock dot" id="clock"></div>
+    <div class="info" id="info"></div>
+    <div class="fav" id="fav"></div>
+    <div class="hint" id="hint"></div>
+  </div>
+</div>
+<div class="bubble dot" id="bubble"></div>
+<div class="shade" id="shade" hidden><div class="sheet" id="sheet"></div></div>
+
+<script>
+{
+const A=window.Android||null,$=id=>document.getElementById(id);
+const D={swipe:"right",curve:55,curveSide:"out",mag:true,fade:true,dsz:36,dfs:19,lhStyle:"big",lhRed:true,rail:true,dim:70,
+ clockPos:"left",csz:96,showInfo:true,cols:"4",isz:56,labels:true,shape:"circle",mono:false,txt:"#ffffff",acc:"#d71921",fav:null};
+let S;try{S={...D,...JSON.parse(localStorage.getItem("dl")||"{}")}}catch(e){S={...D}}
+const save=()=>{try{localStorage.setItem("dl",JSON.stringify(S))}catch(e){}};
+const esc=s=>String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+let APPS=[],ver=-1,q="",open=false;
+const key=a=>a.p+"/"+a.c;
+
+function loadApps(){
+  if(A){const v=A.version();if(v===ver)return;ver=v;try{APPS=JSON.parse(A.apps())}catch(e){APPS=[]}}
+  else if(!APPS.length){APPS=["Telegram","YouTube","Chrome","Камера","Галерея","Карты","Часы","Калькулятор","Телефон","Сообщения","Настройки","Музыка","Почта","Заметки","Погода","Файлы","Диктофон","Календарь","Контакты","Spotify","Viber","Instagram"].map((n,i)=>({n,p:"demo"+i,c:"x",i:""}))}
+  APPS.sort((a,b)=>a.n.localeCompare(b.n,"ru",{sensitivity:"base"}));
+  if(!S.fav){const want=[/телефон|phone|dialer/i,/сообщ|messag/i,/chrome|браузер|browser/i,/камер|camera/i];S.fav=want.map(r=>APPS.find(a=>r.test(a.n)||r.test(a.p))).filter(Boolean).map(key);save()}
+  renderAll();
+}
+function icon(a){
+  const cls="im"+(S.mono?" mono":"")+(a.i?"":" ph");
+  return `<div class="${cls}">${a.i?`<img src="data:image/png;base64,${a.i}" alt="">`:esc(a.n[0]||"?")}</div>`;
+}
+function renderHome(){
+  const favs=(S.fav||[]).map(k=>APPS.find(a=>key(a)===k)).filter(Boolean);
+  $("fav").innerHTML=favs.length?favs.map(a=>`<div class="ic" data-k="${esc(key(a))}">${icon(a)}${S.labels?`<span>${esc(a.n)}</span>`:""}</div>`).join("")
+    :`<div class="empty-fav">Удерживайте приложение в меню, чтобы добавить его сюда</div>`;
+  $("hint").textContent=(S.swipe==="left"?"← смахните влево: все приложения":"смахните вправо → все приложения")+" · удерживайте экран: настройки";
+}
+const letter=n=>{const c=(n.trim()[0]||"#").toUpperCase();return /[0-9]/.test(c)?"#":c};
+function renderDrawer(){
+  const list=APPS.filter(a=>a.n.toLowerCase().includes(q));
+  const g=[];for(const a of list){const L=letter(a.n);let x=g[g.length-1];if(!x||x.L!==L)g.push(x={L,it:[]});x.it.push(a)}
+  $("alist").innerHTML=g.length?g.map(x=>`<section data-l="${esc(x.L)}">${S.lhStyle!=="none"?`<div class="lh dot">${esc(x.L)}</div>`:""}${x.it.map(a=>`<div class="ai" data-k="${esc(key(a))}">${icon(a)}<span>${esc(a.n)}</span></div>`).join("")}</section>`).join(""):`<div class="none">Ничего не найдено</div>`;
+  $("rail").innerHTML=g.map(x=>`<b data-l="${esc(x.L)}">${esc(x.L)}</b>`).join("");
+  $("rail").hidden=!S.rail||!g.length;
+  $("dcount").textContent=q?`Найдено: ${list.length}`:`Приложения · ${list.length}`;
+  curve();
+}
+function hex(h){h=h.replace("#","");return [0,2,4].map(i=>parseInt(h.substr(i,2),16))}
+function apply(){
+  const r=document.documentElement.style,[a,b,c]=hex(S.txt),light=(a*.299+b*.587+c*.114)>140,base=light?"0,0,0":"255,255,255";
+  r.setProperty("--txt",S.txt);r.setProperty("--acc",S.acc);r.setProperty("--cl",`rgba(${a},${b},${c},.18)`);
+  r.setProperty("--dbg",`rgba(${base},${S.dim/100})`);r.setProperty("--dbgs",`rgba(${base},${Math.max(.75,S.dim/100)})`);
+  r.setProperty("--lhc",S.lhRed?S.acc:S.txt);r.setProperty("--lhs",S.lhStyle==="small"?"20px":"40px");
+  for(const k of ["dsz","dfs","isz","csz"])r.setProperty("--"+k,S[k]+"px");
+  r.setProperty("--cols",S.cols);r.setProperty("--shape",{circle:"50%",squircle:"30%",square:"10%",none:"0"}[S.shape]);
+  $("clock").className="clock dot"+(S.clockPos==="center"?" c":"");$("info").className="info"+(S.clockPos==="center"?" c":"");$("info").hidden=!S.showInfo;
+  $("pager").classList.toggle("rev",S.swipe==="left");
+}
+function renderAll(){apply();renderHome();renderDrawer()}
+function tick(){
+  const d=new Date(),p=n=>String(n).padStart(2,"0");
+  $("clock").innerHTML=`${p(d.getHours())}<b>:</b>${p(d.getMinutes())}`;
+  let t=d.toLocaleDateString("ru-RU",{weekday:"long",day:"numeric",month:"long"});
+  if(A){try{t+=` · ${A.battery()}%`}catch(e){}}
+  $("info").textContent=t;
+}
+/* изгиб */
+let raf=0;const al=$("alist");
+function curve(){
+  raf=0;const h=al.clientHeight;if(!h)return;const on=S.curve>0;
+  al.style.setProperty("--apb",on?(h*.45)+"px":"40px");
+  const amp=S.curve/100*al.clientWidth*.32,st=al.scrollTop;
+  for(const el of al.querySelectorAll(".ai")){
+    if(!on){el.style.transform="";el.style.opacity="";continue}
+    const dy=(el.offsetTop+el.offsetHeight/2-st-h*.5)/(h*.5),t=Math.min(1,Math.abs(dy)),k=Math.sqrt(1-t*t);
+    const x=S.curveSide==="in"?amp*(1-k):amp*k;
+    el.style.transform=`translateX(${x.toFixed(1)}px) scale(${(S.mag?1+.16*k:1).toFixed(3)})`;
+    el.style.opacity=S.fade?(.3+.7*k).toFixed(2):"";
+  }
+}
+al.addEventListener("scroll",()=>{if(!raf)raf=requestAnimationFrame(curve)},{passive:true});
+const ro=new ResizeObserver(()=>curve());ro.observe(al);
+/* открытие меню */
+const pager=$("pager");
+function setOpen(v){open=v;pager.style.transform="";pager.classList.toggle("open",v);if(!v){$("srch").blur()}requestAnimationFrame(curve)}
+let sx=0,sy=0,dx=0,mode=null,pid=null,lp=null,lpT=null,moved=false;
+document.addEventListener("pointerdown",e=>{
+  if(!$("shade").hidden||e.target.closest("input,.rail"))return;
+  sx=e.clientX;sy=e.clientY;dx=0;mode="?";pid=e.pointerId;moved=false;
+  const it=e.target.closest(".ai,.ic");lp=it;clearTimeout(lpT);
+  lpT=setTimeout(()=>{if(moved)return;mode=null;if(it){it.classList.remove("pr");appMenu(it.dataset.k)}else if(!open)settings()},550);
+  if(it)it.classList.add("pr");
+});
+document.addEventListener("pointermove",e=>{
+  if(!mode||e.pointerId!==pid)return;dx=e.clientX-sx;const dy=e.clientY-sy;
+  if(Math.abs(dx)>10||Math.abs(dy)>10){moved=true;clearTimeout(lpT);lp&&lp.classList.remove("pr")}
+  if(mode==="?"){if(Math.abs(dx)>12&&Math.abs(dx)>Math.abs(dy))mode="x",pager.classList.add("drag");else if(Math.abs(dy)>12){mode=null;return}else return}
+  const w=innerWidth,[hT,oT]=S.swipe==="left"?[0,-w]:[-w,0],t=Math.max(-w,Math.min(0,(open?oT:hT)+dx));pager.style.transform=`translateX(${t}px)`;
+});
+document.addEventListener("pointerup",e=>{
+  clearTimeout(lpT);lp&&lp.classList.remove("pr");
+  if(mode==="x"){pager.classList.remove("drag");const m=dx*(S.swipe==="left"?-1:1),w=innerWidth;setOpen(open?m>-w*.25:m>w*.25)}
+  else if(mode==="?"&&!moved&&lp)launch(lp.dataset.k);
+  mode=null;lp=null;
+});
+document.addEventListener("pointercancel",()=>{clearTimeout(lpT);lp&&lp.classList.remove("pr");if(mode==="x"){pager.classList.remove("drag");setOpen(open)}mode=null;lp=null});
+function launch(k){const a=APPS.find(x=>key(x)===k);if(a&&A)A.launch(a.p,a.c)}
+/* алфавит сбоку */
+const rail=$("rail"),bub=$("bubble");let rd=false;
+function jump(y){
+  const r=rail.getBoundingClientRect(),b=document.elementFromPoint(r.left+r.width/2,y);if(!b||!b.dataset.l)return;
+  const s=al.querySelector(`section[data-l="${CSS.escape(b.dataset.l)}"]`);if(s)al.scrollTop=s.offsetTop;
+  rail.querySelectorAll("b").forEach(x=>x.classList.toggle("on",x===b));bub.textContent=b.dataset.l;bub.style.top=y+"px";bub.classList.add("on");
+}
+rail.addEventListener("pointerdown",e=>{rd=true;rail.setPointerCapture(e.pointerId);jump(e.clientY)});
+rail.addEventListener("pointermove",e=>{if(rd)jump(e.clientY)});
+const re=()=>{rd=false;bub.classList.remove("on");rail.querySelectorAll(".on").forEach(x=>x.classList.remove("on"))};
+rail.addEventListener("pointerup",re);rail.addEventListener("pointercancel",re);
+$("srch").addEventListener("input",e=>{q=e.target.value.trim().toLowerCase();renderDrawer();al.scrollTop=0});
+$("srch").addEventListener("keydown",e=>{if(e.key==="Enter"){const f=al.querySelector(".ai");if(f)launch(f.dataset.k)}});
+/* листы */
+function sheet(html,bind){$("sheet").innerHTML=html;$("shade").hidden=false;bind&&bind($("sheet"))}
+function closeSheet(){$("shade").hidden=true}
+$("shade").addEventListener("click",e=>{if(e.target.id==="shade")closeSheet()});
+function appMenu(k){
+  const a=APPS.find(x=>key(x)===k);if(!a)return;const inFav=S.fav.includes(k);
+  sheet(`<h2>${esc(a.n)}</h2><div class="menu"><button data-a="fav">${inFav?"Убрать с главного экрана":"Добавить на главный экран"}</button>${inFav?`<button data-a="left">Сдвинуть левее</button>`:""}<button data-a="info">О приложении</button><button data-a="del">Удалить приложение</button></div>`,el=>{
+    el.onclick=e=>{const b=e.target.closest("button");if(!b)return;const x=b.dataset.a;
+      if(x==="fav")S.fav=inFav?S.fav.filter(f=>f!==k):[...S.fav,k];
+      if(x==="left"){const i=S.fav.indexOf(k);if(i>0){const f=[...S.fav];[f[i-1],f[i]]=[f[i],f[i-1]];S.fav=f}}
+      if(x==="info"&&A)A.info(a.p);if(x==="del"&&A)A.uninstall(a.p);
+      save();renderHome();closeSheet()}});
+}
+const CTL=[
+ ["Меню приложений"],["swipe","c","Открывать свайпом",[["right","Вправо →"],["left","← Влево"]]],
+ ["curve","r","Сила изгиба",0,100],["curveSide","c","Дуга",[["out","Наружу )"],["in","Внутрь ("]]],
+ ["mag","t","Увеличивать в центре"],["fade","t","Затухание к краям"],
+ ["dsz","r","Иконки в меню",24,64],["dfs","r","Текст в меню",13,28],
+ ["lhStyle","c","Буквы над группами",[["big","Крупные"],["small","Мелкие"],["none","Без букв"]]],
+ ["lhRed","t","Буквы акцентным цветом"],["rail","t","Алфавит сбоку"],["dim","r","Затемнение",0,100],
+ ["Главный экран"],["clockPos","c","Часы",[["left","Слева"],["center","По центру"]]],["csz","r","Размер часов",48,150],
+ ["showInfo","t","Дата и заряд батареи"],["cols","c","Колонок",[["3","3"],["4","4"],["5","5"]]],
+ ["isz","r","Размер иконок",36,84],["labels","t","Подписи под иконками"],
+ ["Иконки"],["shape","c","Форма",[["circle","Круг"],["squircle","Скруглённые"],["square","Квадрат"],["none","Как есть"]]],["mono","t","Чёрно-белые иконки"],
+ ["Цвета"],["txt","k","Текст"],["acc","k","Акцент"]
+];
+function settings(){
+  const h=CTL.map(c=>{const [k,t,l,a,b]=c;
+    if(c.length===1)return `<h4>${k}</h4>`;
+    if(t==="c")return `<div class="row" data-k="${k}">${a.map(([v,n])=>`<button class="chip${String(S[k])===v?" on":""}" data-v="${v}">${n}</button>`).join("")}</div>`;
+    if(t==="r")return `<label class="rl"><span>${l}</span><input type="range" data-k="${k}" min="${a}" max="${b}" value="${S[k]}"></label>`;
+    if(t==="t")return `<label class="tg"><input type="checkbox" data-k="${k}" ${S[k]?"checked":""}>${l}</label>`;
+    return `<label class="clr"><input type="color" data-k="${k}" value="${S[k]}">${l}</label>`}).join("");
+  sheet(`<h2>Настройки</h2>${h}<h4>Телефон</h4><div class="row"><button class="chip" data-x="wall">Сменить обои</button><button class="chip" data-x="sys">Настройки телефона</button><button class="chip" data-x="home">Выбрать другой главный экран</button></div><div class="row"><button class="chip red" data-x="reset">Сбросить вид</button></div>`,el=>{
+    el.oninput=e=>{const k=e.target.dataset.k;if(!k)return;S[k]=e.target.type==="checkbox"?e.target.checked:e.target.type==="range"?+e.target.value:e.target.value;save();renderAll()};
+    el.onclick=e=>{const b=e.target.closest("button");if(!b)return;
+      if(b.dataset.v!==undefined){const r=b.parentElement;S[r.dataset.k]=b.dataset.v;r.querySelectorAll(".chip").forEach(x=>x.classList.toggle("on",x===b));save();renderAll()}
+      const x=b.dataset.x;if(x==="wall"&&A)A.wallpaper();if(x==="sys"&&A)A.settings();if(x==="home"&&A)A.homeSettings();
+      if(x==="reset"){const f=S.fav;S={...D,fav:f};save();renderAll();settings()}}});
+}
+/* связь с Android */
+window.onBack=()=>{if(!$("shade").hidden)closeSheet();else if(open)setOpen(false)};
+window.onHome=()=>{closeSheet();setOpen(false);q="";$("srch").value="";renderDrawer();al.scrollTop=0};
+window.onResumeApp=()=>{loadApps();tick()};
+loadApps();tick();setInterval(tick,10000);
+}
+</script>
+</body>
+</html>
